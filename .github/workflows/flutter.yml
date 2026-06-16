@@ -2,7 +2,7 @@ name: Flutter CI
 
 on:
   push:
-    branches: [ "main" ]
+    branches: [ "main", "claude/code-review-CXA87" ]
   pull_request:
     branches: [ "main" ]
 
@@ -32,9 +32,13 @@ jobs:
       - name: Generate Android project
         run: flutter create --platforms=android .
 
-      - name: Patch app build.gradle
+      - name: Restore customised Android files
         run: |
-          echo 'cGx1Z2lucyB7CiAgICBpZCAiY29tLmFuZHJvaWQuYXBwbGljYXRpb24iCiAgICBpZCAia290bGluLWFuZHJvaWQiCiAgICBpZCAiZGV2LmZsdXR0ZXIuZmx1dHRlci1ncmFkbGUtcGx1Z2luIgp9CgpkZWYga2V5c3RvcmVGaWxlID0gU3lzdGVtLmdldGVudigiS0VZU1RPUkVfRklMRSIpCgphbmRyb2lkIHsKICAgIG5hbWVzcGFjZSAiY29tLmV4YW1wbGUuYmlsbF90aXBwZXIiCiAgICBjb21waWxlU2RrIDM1CiAgICBuZGtWZXJzaW9uIGZsdXR0ZXIubmRrVmVyc2lvbgoKICAgIGNvbXBpbGVPcHRpb25zIHsKICAgICAgICBzb3VyY2VDb21wYXRpYmlsaXR5IEphdmFWZXJzaW9uLlZFUlNJT05fMV84CiAgICAgICAgdGFyZ2V0Q29tcGF0aWJpbGl0eSBKYXZhVmVyc2lvbi5WRVJTSU9OXzFfOAogICAgfQoKICAgIGtvdGxpbk9wdGlvbnMgewogICAgICAgIGp2bVRhcmdldCA9ICcxLjgnCiAgICB9CgogICAgZGVmYXVsdENvbmZpZyB7CiAgICAgICAgYXBwbGljYXRpb25JZCAiY29tLndhbHR2aXZpZXJzLmJpbGx0aXBwZXIiCiAgICAgICAgbWluU2RrIDIxCiAgICAgICAgdGFyZ2V0U2RrIDM1CiAgICAgICAgdmVyc2lvbkNvZGUgZmx1dHRlci52ZXJzaW9uQ29kZQogICAgICAgIHZlcnNpb25OYW1lIGZsdXR0ZXIudmVyc2lvbk5hbWUKICAgIH0KCiAgICBzaWduaW5nQ29uZmlncyB7CiAgICAgICAgcmVsZWFzZSB7CiAgICAgICAgICAgIGlmIChrZXlzdG9yZUZpbGUgIT0gbnVsbCkgewogICAgICAgICAgICAgICAgc3RvcmVGaWxlIGZpbGUoa2V5c3RvcmVGaWxlKQogICAgICAgICAgICAgICAgc3RvcmVQYXNzd29yZCBTeXN0ZW0uZ2V0ZW52KCJLRVlTVE9SRV9QQVNTV09SRCIpCiAgICAgICAgICAgICAgICBrZXlBbGlhcyBTeXN0ZW0uZ2V0ZW52KCJLRVlfQUxJQVMiKQogICAgICAgICAgICAgICAga2V5UGFzc3dvcmQgU3lzdGVtLmdldGVudigiS0VZX1BBU1NXT1JEIikKICAgICAgICAgICAgfQogICAgICAgIH0KICAgIH0KCiAgICBidWlsZFR5cGVzIHsKICAgICAgICByZWxlYXNlIHsKICAgICAgICAgICAgc2lnbmluZ0NvbmZpZyBrZXlzdG9yZUZpbGUgIT0gbnVsbCA/IHNpZ25pbmdDb25maWdzLnJlbGVhc2UgOiBzaWduaW5nQ29uZmlncy5kZWJ1ZwogICAgICAgICAgICBtaW5pZnlFbmFibGVkIGZhbHNlCiAgICAgICAgICAgIHNocmlua1Jlc291cmNlcyBmYWxzZQogICAgICAgIH0KICAgICAgICBkZWJ1ZyB7CiAgICAgICAgICAgIG1pbmlmeUVuYWJsZWQgZmFsc2UKICAgICAgICAgICAgc2hyaW5rUmVzb3VyY2VzIGZhbHNlCiAgICAgICAgfQogICAgfQp9CgpmbHV0dGVyIHsKICAgIHNvdXJjZSAnLi4vLi4nCn0K' | base64 -d > android/app/build.gradle
+          rm -f android/app/build.gradle
+          git checkout android/app/build.gradle.kts
+          git checkout android/app/src/main/AndroidManifest.xml
+          mkdir -p android/app/src/main/kotlin/com/waltviviers/billtipper
+          git checkout android/app/src/main/kotlin/com/waltviviers/billtipper/MainActivity.kt
 
       - name: Set app display name
         run: |
@@ -70,15 +74,17 @@ jobs:
         run: flutter build appbundle --release
 
       - name: Upload debug APK
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: BillTipper-debug-apk
           path: build/app/outputs/flutter-apk/app-debug.apk
-          if-no-files-found: error
+          if-no-files-found: warn
 
       - name: Upload release AAB
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: BillTipper-release-aab
           path: build/app/outputs/bundle/release/app-release.aab
-          if-no-files-found: error
+          if-no-files-found: warn
