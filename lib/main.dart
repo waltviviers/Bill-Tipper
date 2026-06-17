@@ -255,7 +255,7 @@ class _BillTipperHomeState extends State<BillTipperHome> {
       body: DecoratedBox(
         decoration: BoxDecoration(
           image: DecorationImage(
-            image: const AssetImage('assets/bgx.jpg'),
+            image: const AssetImage('assets/bg.jpg'),
             repeat: ImageRepeat.repeat,
             opacity: 0.08,
           ),
