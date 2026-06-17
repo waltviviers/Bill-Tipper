@@ -252,8 +252,16 @@ class _BillTipperHomeState extends State<BillTipperHome> {
     final onSurface = Theme.of(context).colorScheme.onSurface;
 
     return Scaffold(
-      body: SafeArea(
-        child: ListView(
+      body: DecoratedBox(
+        decoration: BoxDecoration(
+          image: DecorationImage(
+            image: const AssetImage('assets/bgx.jpg'),
+            repeat: ImageRepeat.repeat,
+            opacity: 0.08,
+          ),
+        ),
+        child: SafeArea(
+          child: ListView(
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
           children: [
             // Logo + settings button
@@ -461,6 +469,7 @@ class _BillTipperHomeState extends State<BillTipperHome> {
             const SizedBox(height: 8),
           ],
         ),
+      ),
       ),
     );
   }
