@@ -30,7 +30,7 @@ jobs:
         run: flutter pub get
 
       - name: Generate Android project
-        run: flutter create --platforms=android .
+        run: flutter create --platforms=android --project-name bill_tipper .
 
       - name: Restore customised Android files
         run: |
