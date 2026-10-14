@@ -1,0 +1,722 @@
+<title>Bill Tipper</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
+<script src="https://cdn.jsdelivr.net/npm/tesseract.js@4.1.1/dist/tesseract.umd.min.js"></script>
+
+<style>
+/* Dark-first single-theme — deliberate, matches native app aesthetic
+   Layout: single centred column, cards stacked, max 440px */
+:root {
+  --bg:        #131313;
+  --surface:   #1c1c1c;
+  --surface2:  #272727;
+  --fg:        #ffffff;
+  --fg-dim:    rgba(255,255,255,.52);
+  --fg-dimmer: rgba(255,255,255,.26);
+  --border:    rgba(255,255,255,.07);
+  --accent:    #69f0ae;
+  --glow:      rgba(105,240,174,.26);
+  color-scheme: dark;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; }
+
+body {
+  background: var(--bg);
+  color: var(--fg);
+  font-family: 'Inter', system-ui, sans-serif;
+  font-size: 15px;
+  line-height: 1.5;
+  min-height: 100%;
+  padding-inline: 16px;
+  padding-block: 0;
+}
+
+/* subtle grain texture */
+body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='180' height='180' filter='url(%23n)' opacity='1'/%3E%3C/svg%3E");
+  opacity: .045;
+  z-index: 0;
+}
+
+.app {
+  position: relative;
+  z-index: 1;
+  max-width: 440px;
+  margin: 0 auto;
+  padding-bottom: 56px;
+}
+
+/* ── Header ── */
+.hdr {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-block: 22px 14px;
+}
+.logo {
+  font-size: 21px;
+  font-weight: 700;
+  letter-spacing: -.4px;
+}
+.logo-accent { color: var(--accent); transition: color .3s; }
+
+.icon-btn {
+  width: 40px; height: 40px;
+  border-radius: 50%;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--fg-dim);
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer;
+  transition: color .2s, background .2s;
+}
+.icon-btn:hover { color: var(--fg); background: var(--surface2); }
+.icon-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* ── Total card ── */
+.total-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 22px;
+  padding: 26px 24px 22px;
+  text-align: center;
+  margin-bottom: 10px;
+}
+.total-lbl {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  color: var(--fg-dim);
+  margin-bottom: 10px;
+}
+.total-amt {
+  font-size: 62px;
+  font-weight: 700;
+  letter-spacing: -2.5px;
+  font-variant-numeric: tabular-nums;
+  color: var(--accent);
+  text-shadow: 0 0 22px var(--glow), 0 0 60px var(--glow), 0 0 110px var(--glow);
+  line-height: 1;
+  transition: color .3s, text-shadow .3s;
+  word-break: break-all;
+}
+.total-sub {
+  font-size: 13px;
+  color: var(--fg-dimmer);
+  font-variant-numeric: tabular-nums;
+  margin-top: 8px;
+  min-height: 18px;
+}
+
+/* ── Generic card ── */
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  padding: 18px 20px;
+  margin-bottom: 10px;
+}
+.clabel {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color: var(--fg-dim);
+  margin-bottom: 12px;
+}
+
+/* ── Bill ── */
+.bill-row { display: flex; align-items: center; gap: 8px; }
+.bill-cur { font-size: 26px; font-weight: 600; color: var(--fg-dim); flex-shrink: 0; }
+#billInput {
+  flex: 1; min-width: 0;
+  background: transparent;
+  border: none; outline: none;
+  color: var(--fg);
+  font-size: 36px;
+  font-weight: 600;
+  font-family: 'Inter', system-ui, sans-serif;
+  font-variant-numeric: tabular-nums;
+  caret-color: var(--accent);
+}
+#billInput::placeholder { color: var(--fg-dimmer); }
+
+.scan-btn {
+  display: flex; align-items: center; gap: 6px;
+  padding: 8px 13px;
+  border-radius: 10px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  color: var(--fg-dim);
+  font-size: 13px; font-weight: 500;
+  cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
+  transition: color .2s, border-color .2s;
+}
+.scan-btn:hover { color: var(--fg); border-color: rgba(255,255,255,.14); }
+.scan-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.scan-btn.busy { color: var(--accent); pointer-events: none; }
+
+/* ── Tip ── */
+.tip-row { display: flex; align-items: center; gap: 14px; }
+input[type=range] {
+  -webkit-appearance: none; appearance: none;
+  flex: 1; height: 6px;
+  border-radius: 3px;
+  background: var(--surface2);
+  outline: none; cursor: pointer;
+}
+input[type=range]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 24px; height: 24px;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 10px var(--glow);
+  cursor: pointer;
+  transition: background .3s, box-shadow .3s;
+}
+input[type=range]::-moz-range-thumb {
+  width: 24px; height: 24px;
+  border-radius: 50%;
+  background: var(--accent);
+  border: none;
+  box-shadow: 0 0 10px var(--glow);
+  cursor: pointer;
+}
+input[type=range]:focus-visible { outline: 2px solid var(--accent); outline-offset: 4px; border-radius: 3px; }
+.tip-pct {
+  font-size: 20px; font-weight: 700;
+  color: var(--accent);
+  font-variant-numeric: tabular-nums;
+  min-width: 48px; text-align: right;
+  transition: color .3s;
+}
+
+/* ── Split ── */
+.split-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.split-people { font-size: 15px; font-weight: 500; color: var(--fg); }
+.split-ctrls { display: flex; align-items: center; gap: 12px; }
+.ctr-btn {
+  width: 36px; height: 36px;
+  border-radius: 10px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  color: var(--fg);
+  font-size: 22px; line-height: 1;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer;
+  user-select: none;
+  transition: background .15s;
+}
+.ctr-btn:hover:not(:disabled) { background: #303030; }
+.ctr-btn:disabled { opacity: .3; cursor: not-allowed; }
+.ctr-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.split-num {
+  font-size: 20px; font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  min-width: 26px; text-align: center;
+}
+
+/* ── Round toggle ── */
+label.tog-row {
+  display: flex; align-items: center; justify-content: space-between;
+  cursor: pointer;
+}
+.tog-text { font-size: 15px; color: var(--fg); user-select: none; }
+.tog-wrap { position: relative; width: 48px; height: 28px; flex-shrink: 0; }
+.tog-wrap input { position: absolute; opacity: 0; width: 0; height: 0; }
+.tog-track {
+  position: absolute; inset: 0;
+  border-radius: 14px;
+  background: var(--surface2);
+  border: 1px solid rgba(255,255,255,.1);
+  transition: background .2s;
+}
+.tog-wrap input:checked + .tog-track { background: var(--accent); border-color: transparent; }
+.tog-wrap input:focus-visible + .tog-track { outline: 2px solid var(--accent); outline-offset: 2px; }
+.tog-thumb {
+  position: absolute;
+  top: 4px; left: 4px;
+  width: 20px; height: 20px;
+  border-radius: 50%; background: #fff;
+  box-shadow: 0 1px 3px rgba(0,0,0,.4);
+  transition: transform .2s;
+  pointer-events: none;
+}
+.tog-wrap input:checked ~ .tog-thumb { transform: translateX(20px); }
+
+/* ── Summary ── */
+.summary {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  overflow: hidden;
+  margin-bottom: 10px;
+}
+.sum-row {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 14px 20px;
+  font-variant-numeric: tabular-nums;
+}
+.sum-row + .sum-row { border-top: 1px solid var(--border); }
+.sum-k { font-size: 14px; color: var(--fg-dim); }
+.sum-v { font-size: 15px; font-weight: 600; }
+
+/* ── Footer ── */
+.footer { text-align: center; padding-top: 32px; }
+.footer a {
+  color: var(--fg-dimmer); font-size: 13px;
+  text-decoration: none; transition: color .2s;
+}
+.footer a:hover { color: var(--fg-dim); }
+
+/* ── Settings sheet ── */
+.backdrop {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,.6);
+  z-index: 100;
+  opacity: 0; transition: opacity .25s;
+  pointer-events: none;
+}
+.backdrop.open { opacity: 1; pointer-events: auto; }
+
+.sheet {
+  position: fixed;
+  inset-inline: 0; bottom: 0;
+  background: #1e1e1e;
+  border-radius: 26px 26px 0 0;
+  border-top: 1px solid var(--border);
+  padding: 12px 24px calc(env(safe-area-inset-bottom,0px) + 32px);
+  z-index: 101;
+  transform: translateY(100%);
+  transition: transform .3s cubic-bezier(.32,.72,0,1);
+  max-width: 440px;
+  margin-inline: auto;
+}
+.sheet.open { transform: translateY(0); }
+.sheet-handle {
+  width: 36px; height: 4px;
+  border-radius: 2px;
+  background: rgba(255,255,255,.2);
+  margin: 0 auto 22px;
+}
+.sheet-ttl { font-size: 17px; font-weight: 700; margin-bottom: 4px; }
+.sheet-sub { font-size: 13px; color: var(--fg-dim); margin-bottom: 18px; }
+
+.swatches { display: flex; flex-wrap: wrap; gap: 12px; }
+.swatch {
+  width: 44px; height: 44px;
+  border-radius: 50%;
+  border: 3px solid transparent;
+  cursor: pointer;
+  position: relative;
+  flex-shrink: 0;
+  transition: transform .15s;
+}
+.swatch:hover { transform: scale(1.1); }
+.swatch:focus-visible { outline: 2px solid #fff; outline-offset: 3px; }
+.swatch.active { border-color: #fff; box-shadow: 0 0 0 3px rgba(255,255,255,.12); }
+.swatch .ck {
+  position: absolute; inset: 0;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 16px; opacity: 0;
+}
+.swatch.active .ck { opacity: 1; }
+
+/* ── Snackbar ── */
+.snack {
+  position: fixed;
+  bottom: calc(env(safe-area-inset-bottom,0px) + 20px);
+  left: 50%;
+  transform: translateX(-50%) translateY(10px);
+  background: #383838;
+  color: #fff;
+  border-radius: 10px;
+  padding: 10px 18px;
+  font-size: 14px;
+  white-space: nowrap;
+  z-index: 200;
+  opacity: 0;
+  transition: opacity .2s, transform .2s;
+  pointer-events: none;
+  max-width: calc(100vw - 32px);
+  text-align: center;
+}
+.snack.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+@media (prefers-reduced-motion: reduce) {
+  *, .sheet, .snack, .total-amt { transition: none !important; }
+}
+</style>
+
+<!-- Hidden camera input -->
+<input type="file" id="cameraInput" accept="image/*" capture="environment" hidden aria-hidden="true">
+
+<div class="app">
+
+  <header class="hdr">
+    <div class="logo">Bill <span class="logo-accent">Tipper</span></div>
+    <button class="icon-btn" id="settingsBtn" aria-label="Accent colour settings">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <circle cx="13.5" cy="6.5" r=".5" fill="currentColor"/>
+        <circle cx="17.5" cy="10.5" r=".5" fill="currentColor"/>
+        <circle cx="8.5" cy="7.5" r=".5" fill="currentColor"/>
+        <circle cx="6.5" cy="12.5" r=".5" fill="currentColor"/>
+        <path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125A1.64 1.64 0 0 1 15.296 17h1.996c3.051 0 5.555-2.503 5.555-5.554C21.965 6.012 17.461 2 12 2z"/>
+      </svg>
+    </button>
+  </header>
+
+  <div class="total-card" aria-live="polite" aria-atomic="true">
+    <div class="total-lbl" id="totalLbl">TOTAL</div>
+    <div class="total-amt" id="totalAmt">R0.00</div>
+    <div class="total-sub" id="totalSub"></div>
+  </div>
+
+  <!-- Bill amount -->
+  <div class="card">
+    <div class="clabel">Bill Amount</div>
+    <div class="bill-row">
+      <span class="bill-cur" aria-hidden="true">R</span>
+      <input id="billInput" type="text" inputmode="decimal"
+             placeholder="0.00" autocomplete="off" aria-label="Bill amount in rands">
+      <button class="scan-btn" id="scanBtn" aria-label="Scan receipt with camera">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2"/>
+          <rect x="7" y="7" width="10" height="10" rx="1"/>
+        </svg>
+        <span id="scanLbl">Scan</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Tip slider -->
+  <div class="card">
+    <div class="clabel">Tip</div>
+    <div class="tip-row">
+      <input type="range" id="tipSlider" min="0" max="30" step="1" value="15" aria-label="Tip percentage">
+      <div class="tip-pct" id="tipPct" aria-live="polite">15%</div>
+    </div>
+  </div>
+
+  <!-- Split -->
+  <div class="card">
+    <div class="clabel">Split</div>
+    <div class="split-row">
+      <div class="split-people" id="splitPeople">1 person</div>
+      <div class="split-ctrls">
+        <button class="ctr-btn" id="splitDec" aria-label="Remove one person" disabled>−</button>
+        <div class="split-num" id="splitNum" aria-live="polite">1</div>
+        <button class="ctr-btn" id="splitInc" aria-label="Add one person">+</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Round up -->
+  <div class="card">
+    <label class="tog-row">
+      <span class="tog-text">Round up to nearest R5</span>
+      <div class="tog-wrap">
+        <input type="checkbox" id="roundToggle" aria-label="Round up each share to nearest R5">
+        <div class="tog-track"></div>
+        <div class="tog-thumb"></div>
+      </div>
+    </label>
+  </div>
+
+  <!-- Summary -->
+  <div class="summary" aria-label="Bill summary">
+    <div class="sum-row">
+      <span class="sum-k">Bill</span>
+      <span class="sum-v" id="sumBill">R0.00</span>
+    </div>
+    <div class="sum-row">
+      <span class="sum-k" id="sumTipKey">Tip (15%)</span>
+      <span class="sum-v" id="sumTip">R0.00</span>
+    </div>
+  </div>
+
+  <footer class="footer">
+    <a href="https://www.instagram.com/waltviviers/" target="_blank" rel="noopener noreferrer">@waltviviers</a>
+  </footer>
+
+</div>
+
+<!-- Settings sheet -->
+<div class="backdrop" id="backdrop" aria-hidden="true"></div>
+<div class="sheet" id="sheet" role="dialog" aria-modal="true" aria-label="Settings">
+  <div class="sheet-handle" aria-hidden="true"></div>
+  <div class="sheet-ttl">Settings</div>
+  <div class="sheet-sub">Accent colour</div>
+  <div class="swatches" id="swatches" role="radiogroup" aria-label="Accent colour"></div>
+</div>
+
+<!-- Snackbar -->
+<div class="snack" id="snack" role="status" aria-live="polite"></div>
+
+<script>
+const COLORS = [
+  '#69F0AE','#1DE9B6','#00E5FF','#448AFF',
+  '#7C4DFF','#E040FB','#FF4081','#FF5252',
+  '#FF6D00','#FFD740','#EEFF41','#FFFFFF'
+];
+
+const state = {
+  bill: 0,
+  tip: 15,
+  split: 1,
+  round: false,
+  accent: '#69F0AE',
+};
+
+// ── Accent ──────────────────────────────────────
+function hexToRgb(hex) {
+  return {
+    r: parseInt(hex.slice(1,3),16),
+    g: parseInt(hex.slice(3,5),16),
+    b: parseInt(hex.slice(5,7),16),
+  };
+}
+
+function applyAccent(hex) {
+  state.accent = hex;
+  const {r,g,b} = hexToRgb(hex);
+  const root = document.documentElement;
+  root.style.setProperty('--accent', hex);
+  root.style.setProperty('--glow', `rgba(${r},${g},${b},.26)`);
+  try { localStorage.setItem('bt_accent', hex); } catch(_) {}
+  renderSwatches();
+  updateSliderFill();
+}
+
+// Restore
+try {
+  const saved = localStorage.getItem('bt_accent');
+  if (saved && COLORS.some(c => c.toLowerCase() === saved.toLowerCase())) {
+    state.accent = saved.toUpperCase().replace(/[A-F]/g, c => c);
+    // Normalize
+    state.accent = saved;
+  }
+} catch(_) {}
+
+// ── Format ──────────────────────────────────────
+function fmt(n) {
+  return 'R' + n.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+}
+
+// ── Calc ────────────────────────────────────────
+function calc() {
+  const bill = state.bill;
+  const tip  = bill * state.tip / 100;
+  const total = bill + tip;
+  let pp = state.split > 1 ? total / state.split : total;
+
+  if (state.round && pp > 0) {
+    const rem = pp % 5;
+    if (rem !== 0) pp = pp + (5 - rem);
+  }
+
+  const isPerPerson = state.split > 1;
+  document.getElementById('totalLbl').textContent = isPerPerson ? 'PER PERSON' : 'TOTAL';
+  document.getElementById('totalAmt').textContent = fmt(pp);
+  document.getElementById('totalSub').textContent = isPerPerson ? 'Total: ' + fmt(total) : '';
+
+  document.getElementById('sumBill').textContent = fmt(bill);
+  document.getElementById('sumTipKey').textContent = 'Tip (' + state.tip + '%)';
+  document.getElementById('sumTip').textContent = fmt(tip);
+}
+
+// ── Slider fill ─────────────────────────────────
+function updateSliderFill() {
+  const s = document.getElementById('tipSlider');
+  const pct = (state.tip / 30) * 100;
+  s.style.background =
+    `linear-gradient(to right, var(--accent) ${pct}%, var(--surface2) ${pct}%)`;
+}
+
+// ── Bill input ──────────────────────────────────
+function parseBill(raw) {
+  if (!raw || !raw.trim()) return 0;
+  let s = raw.trim();
+  if (/,\d{1,2}$/.test(s)) {
+    s = s.replace(/\./g, '').replace(',', '.');
+  } else {
+    s = s.replace(/,/g, '');
+  }
+  const n = parseFloat(s);
+  return isNaN(n) || n < 0 ? 0 : n;
+}
+
+document.getElementById('billInput').addEventListener('input', e => {
+  state.bill = parseBill(e.target.value);
+  calc();
+});
+
+// ── Tip slider ──────────────────────────────────
+document.getElementById('tipSlider').addEventListener('input', e => {
+  state.tip = +e.target.value;
+  document.getElementById('tipPct').textContent = state.tip + '%';
+  calc();
+  updateSliderFill();
+});
+
+// ── Split ───────────────────────────────────────
+function renderSplit() {
+  const n = state.split;
+  document.getElementById('splitNum').textContent = n;
+  document.getElementById('splitPeople').textContent = n === 1 ? '1 person' : n + ' people';
+  document.getElementById('splitDec').disabled = n <= 1;
+}
+
+document.getElementById('splitDec').addEventListener('click', () => {
+  if (state.split > 1) { state.split--; renderSplit(); calc(); }
+});
+document.getElementById('splitInc').addEventListener('click', () => {
+  state.split++; renderSplit(); calc();
+});
+
+// ── Round toggle ────────────────────────────────
+document.getElementById('roundToggle').addEventListener('change', e => {
+  state.round = e.target.checked; calc();
+});
+
+// ── Settings sheet ──────────────────────────────
+const settingsBtn = document.getElementById('settingsBtn');
+const backdrop    = document.getElementById('backdrop');
+const sheet       = document.getElementById('sheet');
+
+function openSheet() {
+  backdrop.classList.add('open');
+  sheet.classList.add('open');
+  backdrop.removeAttribute('aria-hidden');
+  sheet.querySelector('.swatch')?.focus();
+}
+function closeSheet() {
+  backdrop.classList.remove('open');
+  sheet.classList.remove('open');
+  backdrop.setAttribute('aria-hidden', 'true');
+  settingsBtn.focus();
+}
+
+settingsBtn.addEventListener('click', openSheet);
+backdrop.addEventListener('click', closeSheet);
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape' && sheet.classList.contains('open')) closeSheet();
+});
+
+// ── Swatches ────────────────────────────────────
+function renderSwatches() {
+  const wrap = document.getElementById('swatches');
+  const curLow = state.accent.toLowerCase();
+  wrap.innerHTML = '';
+  COLORS.forEach(hex => {
+    const isActive = hex.toLowerCase() === curLow;
+    const btn = document.createElement('button');
+    btn.className = 'swatch' + (isActive ? ' active' : '');
+    btn.style.background = hex;
+    btn.setAttribute('role', 'radio');
+    btn.setAttribute('aria-checked', String(isActive));
+    btn.setAttribute('aria-label', hex);
+    const ck = document.createElement('span');
+    ck.className = 'ck';
+    ck.setAttribute('aria-hidden', 'true');
+    ck.textContent = '✓';
+    ck.style.color = hex === '#FFFFFF' ? '#222' : 'rgba(0,0,0,.65)';
+    btn.appendChild(ck);
+    btn.addEventListener('click', () => { applyAccent(hex); calc(); closeSheet(); });
+    wrap.appendChild(btn);
+  });
+}
+
+// ── Snackbar ────────────────────────────────────
+let _snackTimer;
+function snack(msg) {
+  const el = document.getElementById('snack');
+  el.textContent = msg;
+  el.classList.add('show');
+  clearTimeout(_snackTimer);
+  _snackTimer = setTimeout(() => el.classList.remove('show'), 3000);
+}
+
+// ── Scan / OCR ──────────────────────────────────
+const cameraInput = document.getElementById('cameraInput');
+const scanBtn     = document.getElementById('scanBtn');
+const scanLbl     = document.getElementById('scanLbl');
+
+scanBtn.addEventListener('click', () => { cameraInput.value = ''; cameraInput.click(); });
+
+cameraInput.addEventListener('change', async e => {
+  const file = e.target.files?.[0];
+  if (!file) return;
+  scanBtn.classList.add('busy');
+  scanLbl.textContent = 'Scanning…';
+  try {
+    if (typeof Tesseract === 'undefined') throw new Error('no ocr');
+    const { data: { text } } = await Tesseract.recognize(file, 'eng', { logger: () => {} });
+    const amount = extractTotal(text);
+    if (amount !== null) {
+      const val = amount.toFixed(2);
+      document.getElementById('billInput').value = val;
+      state.bill = amount;
+      calc();
+      snack('Detected: R' + val);
+    } else {
+      snack('No total found — enter amount manually');
+    }
+  } catch(_) {
+    snack('Scan unavailable — enter amount manually');
+  } finally {
+    scanBtn.classList.remove('busy');
+    scanLbl.textContent = 'Scan';
+  }
+});
+
+function extractTotal(text) {
+  const lines = text.split('\n');
+  const kwRe  = /total|due|amount|owing|to pay|te betaal|subtotal|sub-total|totaal/i;
+  const numRe = /\d{1,3}(?:[.,\s]\d{3})*[.,]\d{2}|\d+[.,]\d{2}/g;
+  let best = null;
+
+  for (const line of lines) {
+    if (kwRe.test(line)) {
+      const ms = line.match(numRe) || [];
+      for (const m of ms) {
+        const n = parseRawAmt(m);
+        if (n !== null && n < 100000 && (best === null || n > best)) best = n;
+      }
+    }
+  }
+  if (best !== null) return best;
+
+  const all = text.match(numRe) || [];
+  for (const m of all) {
+    const n = parseRawAmt(m);
+    if (n !== null && n < 100000 && (best === null || n > best)) best = n;
+  }
+  return best;
+}
+
+function parseRawAmt(s) {
+  s = s.trim().replace(/\s/g, '');
+  if (/,\d{2}$/.test(s)) {
+    s = s.replace(/\./g, '').replace(',', '.');
+  } else {
+    s = s.replace(/,/g, '');
+  }
+  const n = parseFloat(s);
+  return isNaN(n) ? null : n;
+}
+
+// ── Init ────────────────────────────────────────
+applyAccent(state.accent);
+renderSplit();
+calc();
+</script>
